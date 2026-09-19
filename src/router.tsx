@@ -1,15 +1,29 @@
-import { Suspense, lazy } from 'react'
-import { createBrowserRouter } from 'react-router-dom'
+import { Suspense, lazy, useEffect } from 'react'
+import { createBrowserRouter, useParams } from 'react-router-dom'
 import { SiteLayout } from '@/components/layout/SiteLayout'
 import { AdminTableSkeleton } from '@/components/common/Skeletons'
-import { ArchivePage } from '@/pages/ArchivePage'
 import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
-import { ProjectDetailPage } from '@/pages/ProjectDetailPage'
 import { SkillsPage } from '@/pages/SkillsPage'
+import { appsHomeUrl, appsUrl } from '@/lib/apps'
 
 const AdminRoutes = lazy(() => import('@/pages/admin/AdminRoutes'))
+
+function RedirectToAppsHome() {
+  useEffect(() => {
+    window.location.replace(appsHomeUrl())
+  }, [])
+  return null
+}
+
+function RedirectToAppsProject() {
+  const { slug = '' } = useParams()
+  useEffect(() => {
+    window.location.replace(appsUrl(`/projects/${encodeURIComponent(slug)}`))
+  }, [slug])
+  return null
+}
 
 export const router = createBrowserRouter([
   {
@@ -17,8 +31,8 @@ export const router = createBrowserRouter([
     element: <SiteLayout />,
     children: [
       { index: true, element: <HomePage /> },
-      { path: 'projects', element: <ArchivePage /> },
-      { path: 'projects/:slug', element: <ProjectDetailPage /> },
+      { path: 'projects', element: <RedirectToAppsHome /> },
+      { path: 'projects/:slug', element: <RedirectToAppsProject /> },
       { path: 'skills', element: <SkillsPage /> },
     ],
   },

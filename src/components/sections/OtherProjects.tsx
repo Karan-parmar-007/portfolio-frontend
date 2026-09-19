@@ -31,14 +31,13 @@ export function OtherProjects({ projects }: { projects: ProjectSummary[] }) {
 
       <ScrollReveal delay={0.2} className="mt-14 flex justify-center">
         <Button
-          type="button"
-          onClick={() => {
-            window.location.assign(appsHomeUrl())
-          }}
+          asChild
           className="group flex items-center gap-2 rounded border border-green bg-transparent px-8 py-5 font-mono text-sm text-green hover:bg-green-tint"
         >
-          <span>View All Projects</span>
-          <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+          <a href={appsHomeUrl()}>
+            <span>View All Projects</span>
+            <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+          </a>
         </Button>
       </ScrollReveal>
     </section>
