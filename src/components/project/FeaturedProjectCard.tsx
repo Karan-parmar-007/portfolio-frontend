@@ -1,7 +1,7 @@
 import { ExternalLink, Folder, Shield } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import { MediaImage } from '@/components/common/MediaImage'
 import { cn } from '@/lib/cn'
+import { projectPublicUrl } from '@/lib/apps'
 import { GithubIconExport as GithubIcon } from '@/lib/socialIcons'
 import type { ProjectSummary } from '@/types/project'
 
@@ -34,7 +34,7 @@ export function FeaturedProjectCard({
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-light-navy via-light-navy/50 to-transparent opacity-60" />
           <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-            {project.access_level?.name ? (
+            {project.access_level?.name && !project.is_live ? (
               <span className="flex items-center gap-1.5 rounded-full border border-green/30 bg-navy/90 px-3 py-1.5 font-mono text-xs text-green backdrop-blur-sm">
                 <Shield className="h-3 w-3" />
                 {project.access_level.name}
@@ -57,12 +57,12 @@ export function FeaturedProjectCard({
         >
           <p className="mb-2 font-mono text-sm text-green">Featured Project</p>
           <h3 className="mb-6 text-3xl font-bold text-lightest-slate transition-colors group-hover:text-green">
-            <Link
-              to={`/projects/${project.slug}`}
+            <a
+              href={projectPublicUrl(project)}
               className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green"
             >
               {project.name}
-            </Link>
+            </a>
           </h3>
           <p className="leading-relaxed text-slate">{project.short_description}</p>
           <div className="mt-6 flex flex-wrap gap-2">
@@ -104,11 +104,9 @@ export function FeaturedProjectCard({
                 </span>
               </a>
             ) : null}
-            {project.is_live && project.live_url ? (
+            {project.is_live ? (
               <a
-                href={project.live_url}
-                target="_blank"
-                rel="noreferrer"
+                href={projectPublicUrl(project)}
                 className="ml-auto flex items-center gap-2 rounded border border-green/30 bg-green-tint px-4 py-2 text-green transition-colors hover:bg-green/20"
               >
                 <ExternalLink className="h-4 w-4" />

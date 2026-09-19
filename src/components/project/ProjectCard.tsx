@@ -1,6 +1,6 @@
 import { ExternalLink, Folder } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import { GithubIconExport as GithubIcon } from '@/lib/socialIcons'
+import { projectPublicUrl } from '@/lib/apps'
 import type { ProjectSummary } from '@/types/project'
 
 export function ProjectCard({ project }: { project: ProjectSummary }) {
@@ -37,9 +37,7 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
             ) : null}
             {project.is_live && project.live_url ? (
               <a
-                href={project.live_url}
-                target="_blank"
-                rel="noreferrer"
+                href={projectPublicUrl(project)}
                 title="Live Demo"
                 aria-label="Live Demo"
                 className="text-light-slate transition-colors hover:text-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green"
@@ -52,7 +50,7 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
 
         {/* Access Level / Live Badges */}
         <div className="mb-3 flex items-center gap-2">
-          {project.access_level?.name ? (
+          {project.access_level?.name && !project.is_live ? (
             <span className="rounded bg-green-tint px-2 py-0.5 font-mono text-xs text-green">
               {project.access_level.name}
             </span>
@@ -66,12 +64,12 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
 
         {/* Project Name */}
         <h3 className="mb-3 text-xl font-bold text-lightest-slate transition-colors group-hover:text-green">
-          <Link
-            to={`/projects/${project.slug}`}
+          <a
+            href={projectPublicUrl(project)}
             className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green"
           >
             {project.name}
-          </Link>
+          </a>
         </h3>
 
         {/* Project Description */}

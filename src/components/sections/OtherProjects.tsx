@@ -1,12 +1,11 @@
-import { useNavigate } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollReveal, ScrollStagger, ScrollStaggerItem } from '@/components/common/FadeIn'
 import { ProjectCard } from '@/components/project/ProjectCard'
+import { appsHomeUrl } from '@/lib/apps'
 import type { ProjectSummary } from '@/types/project'
 
 export function OtherProjects({ projects }: { projects: ProjectSummary[] }) {
-  const navigate = useNavigate()
   if (projects.length === 0) return null
 
   return (
@@ -33,7 +32,9 @@ export function OtherProjects({ projects }: { projects: ProjectSummary[] }) {
       <ScrollReveal delay={0.2} className="mt-14 flex justify-center">
         <Button
           type="button"
-          onClick={() => navigate('/projects')}
+          onClick={() => {
+            window.location.assign(appsHomeUrl())
+          }}
           className="group flex items-center gap-2 rounded border border-green bg-transparent px-8 py-5 font-mono text-sm text-green hover:bg-green-tint"
         >
           <span>View All Projects</span>

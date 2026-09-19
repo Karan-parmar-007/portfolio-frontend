@@ -8,6 +8,7 @@ import { cn } from '@/lib/cn'
 import { useScrollSpy } from '@/hooks/useScrollSpy'
 import { useAuth } from '@/context/AuthContext'
 import { env } from '@/lib/env'
+import { appsHomeUrl } from '@/lib/apps'
 import { ssoFrontendUrl } from '@/lib/ssoClient'
 import type { NavSection } from '@/lib/sections'
 import type { MediaRef } from '@/types/media'
@@ -77,7 +78,7 @@ export function Nav({
 
   const otherItems: NavItem[] = [
     { href: '/', text: 'Home' },
-    { href: '/projects', text: 'Projects' },
+    { href: appsHomeUrl(), text: 'Projects' },
     { href: '/skills', text: 'Skills' },
   ]
 
@@ -95,6 +96,10 @@ export function Nav({
       if (el) {
         el.scrollIntoView({ behavior: 'smooth' })
       }
+      return
+    }
+    if (/^https?:\/\//i.test(href)) {
+      window.location.assign(href)
       return
     }
     navigate(href)

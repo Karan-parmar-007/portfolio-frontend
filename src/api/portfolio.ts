@@ -76,41 +76,47 @@ export async function fetchOverview(): Promise<PortfolioOverview> {
       fetchAppsJson('/portfolio/about-skills'),
     ])
 
-    const mapCard = (p: Record<string, unknown>) => ({
-      id: String(p.id),
-      name: String(p.name),
-      slug: String(p.slug),
-      short_description: String(
-        pick(p, 'short_description', 'shortDescription') ?? '',
-      ),
-      sequence: Number(p.sequence ?? 0),
-      is_featured: Boolean(pick(p, 'is_featured', 'isFeatured')),
-      is_live: String(pick(p, 'status') || '').toLowerCase() === 'live',
-      live_url: pick<string | null>(p, 'live_url', 'liveUrl') ?? null,
-      github_link_backend: pick<string | null>(p, 'github_url', 'githubUrl') ?? null,
-      github_link_frontend: null,
-      cover_image: pick<string>(p, 'cover_image_url', 'coverImageUrl')
-        ? {
-            id: String(p.id),
-            url: String(pick(p, 'cover_image_url', 'coverImageUrl')),
-            filename: 'cover.jpg',
-            content_type: 'image/jpeg',
-            width: null,
-            height: null,
-          }
-        : null,
-      skills: ((pick<string[]>(p, 'tech_stack', 'techStack') ?? []) as string[]).map(
-        (name: string) => ({
-          id: name,
-          name,
-        }),
-      ),
-      access_level: {
-        id: String(pick(p, 'status') || 'public'),
-        name: String(pick(p, 'status') || 'public'),
-      },
-      created_at: '',
-    })
+    const mapCard = (p: Record<string, unknown>) => {
+      const statusSlug = String(pick(p, 'status') || '').toLowerCase()
+      const statusLabel = statusSlug
+        ? `${statusSlug.charAt(0).toUpperCase()}${statusSlug.slice(1)}`
+        : ''
+      return {
+        id: String(p.id),
+        name: String(p.name),
+        slug: String(p.slug),
+        short_description: String(
+          pick(p, 'short_description', 'shortDescription') ?? '',
+        ),
+        sequence: Number(p.sequence ?? 0),
+        is_featured: Boolean(pick(p, 'is_featured', 'isFeatured')),
+        is_live: statusSlug === 'live',
+        live_url: pick<string | null>(p, 'live_url', 'liveUrl') ?? null,
+        github_link_backend: pick<string | null>(p, 'github_url', 'githubUrl') ?? null,
+        github_link_frontend: null,
+        cover_image: pick<string>(p, 'cover_image_url', 'coverImageUrl')
+          ? {
+              id: String(p.id),
+              url: String(pick(p, 'cover_image_url', 'coverImageUrl')),
+              filename: 'cover.jpg',
+              content_type: 'image/jpeg',
+              width: null,
+              height: null,
+            }
+          : null,
+        skills: ((pick<string[]>(p, 'tech_stack', 'techStack') ?? []) as string[]).map(
+          (name: string) => ({
+            id: name,
+            name,
+          }),
+        ),
+        access_level: {
+          id: statusSlug || 'public',
+          name: statusLabel || 'public',
+        },
+        created_at: '',
+      }
+    }
 
     data.featured_projects = ((featuredRes.items as Record<string, unknown>[]) || []).map(
       mapCard,
