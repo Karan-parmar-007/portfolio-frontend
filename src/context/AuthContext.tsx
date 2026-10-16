@@ -4,17 +4,31 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useState,
   type ReactNode,
 } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { fetchSession, logout as logoutRequest } from '@/api/auth'
+import { useNavigate } from 'react-router-dom'
+import {
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query'
+import { SIGNED_OUT_EVENT } from '@/lib/apiClient'
 import { queryKeys } from '@/lib/queryKeys'
-import type { SessionResponse } from '@/types/auth'
+import {
+  ANONYMOUS,
+  isOwner as isOwnerUser,
+  sso,
+  type SsoSession,
+  type SsoUser,
+} from '@/lib/sso'
 
 interface AuthState {
-  session: SessionResponse | null
+  /** SSO session; `null` only while the first check is pending or after an SSO outage. */
+  session: SsoSession | null
+  user: SsoUser | null
   isLoading: boolean
+  isAuthenticated: boolean
+  /** UI only — the backend enforces owner access on every admin call. */
   isOwner: boolean
   logout: () => Promise<void>
   refetch: () => Promise<void>
@@ -22,66 +36,66 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | null>(null)
 
-const anonymousSession: SessionResponse = {
-  authenticated: false,
-  is_owner: false,
-  email: null,
-  user_id: null,
-  role_name: null,
-  name: null,
+/** Store the new session and drop data cached for the previous user. */
+function applySession(queryClient: QueryClient, next: SsoSession): void {
+  queryClient.setQueryData(queryKeys.session, next)
+  const notSession = (query: { queryKey: readonly unknown[] }) =>
+    query.queryKey[0] !== queryKeys.session[0]
+  queryClient.removeQueries({ type: 'inactive', predicate: notSession })
+  void queryClient.invalidateQueries({ type: 'active', predicate: notSession })
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
-  const [bootstrapped, setBootstrapped] = useState(false)
 
+  // sso.getSession() refreshes server-side, so an expired access token with a
+  // live refresh cookie still resolves as signed in.
   const sessionQuery = useQuery({
     queryKey: queryKeys.session,
-    queryFn: fetchSession,
+    queryFn: () => sso.getSession(),
     staleTime: 60_000,
-    retry: false,
+    retry: 1,
   })
 
   useEffect(() => {
-    if (!sessionQuery.isLoading) {
-      setBootstrapped(true)
+    // Login/logout in another tab (or a session change noticed here).
+    const unsubscribe = sso.onSessionChange((next) => applySession(queryClient, next))
+    const onSignedOut = () => queryClient.setQueryData(queryKeys.session, ANONYMOUS)
+    window.addEventListener(SIGNED_OUT_EVENT, onSignedOut)
+    return () => {
+      unsubscribe()
+      window.removeEventListener(SIGNED_OUT_EVENT, onSignedOut)
     }
-  }, [sessionQuery.isLoading])
-
-  useEffect(() => {
-    const onUnauthenticated = () => {
-      queryClient.setQueryData(queryKeys.session, anonymousSession)
-    }
-    window.addEventListener('portfolio:unauthenticated', onUnauthenticated)
-    return () =>
-      window.removeEventListener('portfolio:unauthenticated', onUnauthenticated)
   }, [queryClient])
 
   const logout = useCallback(async () => {
     try {
-      await logoutRequest()
+      await sso.logout()
     } catch {
-      // clear local session even if SSO proxy fails
+      // SSO always clears cookies; still sign out locally if it was unreachable.
     }
-    queryClient.setQueryData(queryKeys.session, anonymousSession)
-    queryClient.clear()
+    applySession(queryClient, ANONYMOUS)
   }, [queryClient])
 
+  const { refetch: refetchSession } = sessionQuery
   const refetch = useCallback(async () => {
-    await sessionQuery.refetch()
-  }, [sessionQuery])
+    await refetchSession()
+  }, [refetchSession])
 
   const session = sessionQuery.data ?? null
+  const user = session?.authenticated ? session.user : null
 
   const value = useMemo<AuthState>(
     () => ({
       session,
-      isLoading: !bootstrapped || sessionQuery.isLoading,
-      isOwner: Boolean(session?.authenticated && session.is_owner),
+      user,
+      isLoading: sessionQuery.isPending,
+      isAuthenticated: Boolean(session?.authenticated),
+      isOwner: isOwnerUser(user),
       logout,
       refetch,
     }),
-    [bootstrapped, session, sessionQuery.isLoading, logout, refetch],
+    [session, user, sessionQuery.isPending, logout, refetch],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
@@ -93,4 +107,17 @@ export function useAuth(): AuthState {
     throw new Error('useAuth must be used within AuthProvider')
   }
   return ctx
+}
+
+/**
+ * Log out of SSO, clear cached data and land on the public home page.
+ * Navigates first so protected pages unmount instead of redirecting to login.
+ */
+export function useLogout(): () => Promise<void> {
+  const { logout } = useAuth()
+  const navigate = useNavigate()
+  return useCallback(async () => {
+    navigate('/', { replace: true })
+    await logout()
+  }, [logout, navigate])
 }

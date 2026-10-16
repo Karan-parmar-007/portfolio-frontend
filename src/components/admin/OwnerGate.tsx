@@ -1,27 +1,35 @@
-import type { ReactNode } from 'react'
-import { Link, Navigate, useLocation } from 'react-router-dom'
+import { useEffect, type ReactNode } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { AdminTableSkeleton } from '@/components/common/Skeletons'
 import { Button } from '@/components/ui/button'
-import { useAuth } from '@/context/AuthContext'
+import { useAuth, useLogout } from '@/context/AuthContext'
+import { sso } from '@/lib/sso'
 
-export function OwnerGate({ children }: { children: ReactNode }) {
-  const { isLoading, session, isOwner } = useAuth()
-  const location = useLocation()
-
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-navy p-8">
-        <div className="w-full max-w-md">
-          <AdminTableSkeleton rows={4} />
-        </div>
+function GateSkeleton() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-navy p-8">
+      <div className="w-full max-w-md">
+        <AdminTableSkeleton rows={4} />
       </div>
-    )
-  }
+    </div>
+  )
+}
 
-  if (!session?.authenticated) {
-    return (
-      <Navigate to="/admin/login" replace state={{ from: location.pathname }} />
-    )
+/** UI gate only — every admin API call is enforced by the backend (live SSO owner check). */
+export function OwnerGate({ children }: { children: ReactNode }) {
+  const { isLoading, isAuthenticated, isOwner } = useAuth()
+  const logout = useLogout()
+  const location = useLocation()
+  const signedOut = !isLoading && !isAuthenticated
+
+  useEffect(() => {
+    if (signedOut) {
+      sso.redirectToLogin(`${location.pathname}${location.search}${location.hash}`)
+    }
+  }, [signedOut, location.pathname, location.search, location.hash])
+
+  if (isLoading || signedOut) {
+    return <GateSkeleton />
   }
 
   if (!isOwner) {
@@ -33,9 +41,14 @@ export function OwnerGate({ children }: { children: ReactNode }) {
         <p className="max-w-md text-slate">
           This account does not have access to the portfolio admin.
         </p>
-        <Button asChild>
-          <Link to="/">Go home</Link>
-        </Button>
+        <div className="flex gap-3">
+          <Button type="button" variant="outline" onClick={() => void logout()}>
+            Log out
+          </Button>
+          <Button asChild>
+            <Link to="/">Go home</Link>
+          </Button>
+        </div>
       </div>
     )
   }

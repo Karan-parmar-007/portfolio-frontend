@@ -33,22 +33,31 @@ The old app at [frontend/my-website-frontent](frontend/my-website-frontent) is a
 **reference for visual language and the API contract only**. It is untyped JSX with
 duplicated layouts and dead modules. Do not copy files from it.
 
-## Two backends, two clients
+## API client and SSO
 
-| Client | Base URL | Purpose |
+Contract: `single_sign_on/backend/docs/SSO_CONTRACT.md` §6.
+
+| Module | Base URL | Purpose |
 |---|---|---|
-| `lib/apiClient.ts` | `${VITE_PORTFOLIO_API_URL}/v1` → `localhost:8001/api/v1` | portfolio content, public reads and admin writes |
-| `lib/ssoClient.ts` | `${VITE_SSO_API_URL}/v1` → `localhost:8000/api/v1` | login, logout, refresh only |
+| `lib/apiClient.ts` | `VITE_PORTFOLIO_API_URL` → `/api/portfolio` | portfolio content, public reads and admin writes |
+| `lib/sso.ts` | same-origin `/api/auth` | the one `sso` instance from the vendored `lib/sso/sso-client.ts` (never edit it) |
 
-Both use `withCredentials: true`. Tokens are HttpOnly cookies set by the SSO — this
-app never sees, stores, or sends a token itself.
+Tokens are HttpOnly cookies set by the SSO — this app never sees, stores, or
+sends a token itself. `/api/auth/*` is routed to SSO by Caddy in prod and by the
+Vite proxy in dev; this app never proxies or re-implements it.
 
-- `apiClient` attaches `X-CSRF-Token` from the `csrf_token` cookie on mutating
-  requests, and on `401` refreshes via the **SSO** then retries once, coalescing
-  concurrent refreshes.
-- `ssoClient` attaches CSRF but has **no** refresh interceptor.
-- `GET /auth/session` is excluded from the refresh interceptor — it returns `200`
-  for anonymous callers, so retrying it would loop.
+- **Who is signed in:** `AuthContext` runs `sso.getSession()` (always 200;
+  refreshes server-side, so an expired access token is not "signed out").
+  While pending, render a neutral placeholder — never "Log in".
+- **Owner checks** use the session user's `role_name` (`isOwner`) for UI only;
+  the backend enforces owner access live on every admin call.
+- `apiClient` sends `X-CSRF-Token: sso.csrfToken()` on mutations. On `401` it
+  calls `sso.refresh()` once (single-flight) and retries; if still signed out it
+  marks the session anonymous and, on `/admin/*`, `sso.redirectToLogin()`.
+- Login / signup links use `sso.loginUrl(path)` / `sso.signupUrl(path)`.
+  `/admin/login` jumps straight to `sso.loginUrl('/admin')`.
+- Logout: `useLogout()` → navigate to `/`, `await sso.logout()`, drop cached
+  data. `sso.onSessionChange` does the same for logins/logouts in other tabs.
 
 Dev ports: this app runs on **5174** (`strictPort`). 5173 belongs to the SSO
 frontend. The portfolio origin must be present in the SSO's `CORS_ORIGINS`.
@@ -62,7 +71,7 @@ src/
 ├── router.tsx      # route table; /admin is a React.lazy chunk
 ├── index.css       # @import tailwindcss + @theme tokens + base layer
 ├── types/          # one interface per API response — no any, no casts
-├── lib/            # env, apiClient, ssoClient, queryKeys, mediaUrl, cn, date, csrf
+├── lib/            # env, apiClient, sso (+ vendored sso/sso-client.ts), queryKeys, mediaUrl, cn, date
 ├── api/            # thin typed functions, one per endpoint group
 ├── hooks/          # React Query hooks + UI hooks (scroll spy, reveal, reduced motion)
 ├── context/        # AuthContext
@@ -124,8 +133,8 @@ the old `home.jsx` was 617.
   its sidebar across seven pages.
 - `react-hook-form` + `zod` for every form. No uncontrolled `FormData(e.target)`.
 - `sonner` toasts for all feedback. **Never `alert()`.**
-- No public auth links anywhere in the site chrome. `/admin/login` is reachable
-  only by typing it.
+- The only auth links are the Nav's Log in / Sign up (SSO). `/admin/login` is
+  reachable only by typing it.
 
 **Dependencies**
 - Every installed package is used. An unused dependency is a review failure.
@@ -135,9 +144,8 @@ the old `home.jsx` was 617.
 ## Environment
 
 ```
-VITE_PORTFOLIO_API_URL=http://localhost:8001/api
-VITE_SSO_API_URL=http://localhost:8000/api
-VITE_SSO_FRONTEND_URL=http://localhost:5173
+VITE_PORTFOLIO_API_URL=/api/portfolio        # Vite proxy -> localhost:8001
+VITE_SSO_FRONTEND_URL=http://localhost:5173   # SSO login/signup/account pages
 ```
 
 Read them only through `lib/env.ts`, which throws on a missing value at startup
@@ -159,7 +167,8 @@ Requires the portfolio backend on 8001 and the SSO backend on 8000 to be running
 1. Running on 5173 and colliding with the SSO frontend.
 2. Forgetting `withCredentials`, so cookies are never sent and admin calls 401.
 3. Setting `Content-Type` on a multipart request.
-4. Letting the refresh interceptor fire on `GET /auth/session`, causing a loop.
+4. Calling SSO `/refresh` or `/logout` by hand, or building login URLs yourself —
+   use the `sso` client.
 5. Fetching inside a section component instead of the page.
 6. Hardcoding section numbers so removing Education leaves a gap.
 7. Rendering admin chrome before `OwnerGate` resolves, briefly exposing it.
@@ -167,7 +176,7 @@ Requires the portfolio backend on 8001 and the SSO backend on 8000 to be running
 9. Building the experience section as an accordion — v4 uses vertical tabs with a
    sliding green indicator, and that is the spec.
 10. Reintroducing base64 image handling. Images are URLs from
-    `GET /api/v1/media/{id}` via `mediaUrl()`.
+    `GET /api/portfolio/media/{id}` via `mediaUrl()`.
 11. Forgetting to invalidate `queryKeys.overview` after an admin write, so the home
     page shows stale content.
-12. Adding a public login or signup link. There is none.
+12. Treating `isOwner` as security. It is UI only; the backend decides.
