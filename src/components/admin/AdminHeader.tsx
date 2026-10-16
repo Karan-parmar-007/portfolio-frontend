@@ -6,11 +6,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
-import { useAuth } from '@/context/AuthContext'
+import { useAuth, useLogout } from '@/context/AuthContext'
 import { ADMIN_NAV_ITEMS } from './adminNav'
 
 export function AdminHeader() {
-  const { session, logout } = useAuth()
+  const { user } = useAuth()
+  const logout = useLogout()
   const location = useLocation()
   const current =
     ADMIN_NAV_ITEMS.find((item) => {
@@ -34,7 +35,7 @@ export function AdminHeader() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm">
-              {session?.email ?? 'Account'}
+              {user?.email ?? 'Account'}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

@@ -2,8 +2,8 @@ import axios, {
   type AxiosError,
   type InternalAxiosRequestConfig,
 } from 'axios'
-import { getCsrfToken } from './csrf'
 import { env } from './env'
+import { currentPath, isProtectedPath, sso } from './sso'
 
 const rawUrl = env.PORTFOLIO_API_URL.replace(/\/+$/, '')
 const normalizedBaseUrl = rawUrl.endsWith('/api/portfolio')
@@ -12,19 +12,10 @@ const normalizedBaseUrl = rawUrl.endsWith('/api/portfolio')
     ? `${rawUrl}/portfolio`
     : rawUrl
 
-function apiOrigin(): string {
-  try {
-    return new URL(normalizedBaseUrl, window.location.origin).origin
-  } catch {
-    return window.location.origin
-  }
-}
+/** Fired when an API 401 could not be recovered by refreshing the SSO session. */
+export const SIGNED_OUT_EVENT = 'portfolio:unauthenticated'
 
-/** SSO cookie path is /api/auth — refresh/logout must hit that prefix. */
-export function ssoAuthUrl(path: string): string {
-  const suffix = path.startsWith('/') ? path : `/${path}`
-  return `${apiOrigin()}/api/auth${suffix}`
-}
+const MUTATING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE']
 
 export const apiClient = axios.create({
   baseURL: normalizedBaseUrl,
@@ -34,18 +25,11 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const method = config.method?.toUpperCase()
 
-  if (
-    method &&
-    ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) &&
-    !(config.data instanceof FormData)
-  ) {
-    if (!config.headers['Content-Type']) {
+  if (method && MUTATING_METHODS.includes(method)) {
+    if (!(config.data instanceof FormData) && !config.headers['Content-Type']) {
       config.headers['Content-Type'] = 'application/json'
     }
-  }
-
-  if (method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-    const csrf = getCsrfToken()
+    const csrf = sso.csrfToken()
     if (csrf) {
       config.headers['X-CSRF-Token'] = csrf
     }
@@ -54,27 +38,16 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config
 })
 
-let refreshPromise: Promise<void> | null = null
+// Single-flight: concurrent 401s share one SSO session refresh.
+let refreshPromise: Promise<boolean> | null = null
 
-function isAuthLifecycle(config: InternalAxiosRequestConfig): boolean {
-  const url = config.url ?? ''
-  return (
-    url.includes('/auth/session') ||
-    url.includes('/auth/refresh') ||
-    url.includes('/auth/logout')
-  )
-}
-
-async function refreshViaPortfolio(): Promise<void> {
-  const csrf = getCsrfToken()
-  await axios.post(
-    ssoAuthUrl('/refresh'),
-    {},
-    {
-      withCredentials: true,
-      headers: csrf ? { 'X-CSRF-Token': csrf } : undefined,
-    },
-  )
+function refreshSession(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = sso.refresh().finally(() => {
+      refreshPromise = null
+    })
+  }
+  return refreshPromise
 }
 
 apiClient.interceptors.response.use(
@@ -84,31 +57,32 @@ apiClient.interceptors.response.use(
       | (InternalAxiosRequestConfig & { _retry?: boolean })
       | undefined
 
-    if (!originalRequest) {
+    if (
+      !originalRequest ||
+      error.response?.status !== 401 ||
+      originalRequest._retry
+    ) {
       return Promise.reject(error)
     }
 
-    if (
-      error.response?.status === 401 &&
-      !originalRequest._retry &&
-      !isAuthLifecycle(originalRequest)
-    ) {
-      originalRequest._retry = true
+    originalRequest._retry = true
 
-      try {
-        if (!refreshPromise) {
-          refreshPromise = refreshViaPortfolio().finally(() => {
-            refreshPromise = null
-          })
-        }
-        await refreshPromise
-        return apiClient(originalRequest)
-      } catch (refreshError) {
-        window.dispatchEvent(new CustomEvent('portfolio:unauthenticated'))
-        return Promise.reject(refreshError)
-      }
+    let signedIn: boolean
+    try {
+      signedIn = await refreshSession()
+    } catch {
+      // SSO unreachable: keep the current UI state, surface the original error.
+      return Promise.reject(error)
     }
 
+    if (signedIn) {
+      return apiClient(originalRequest)
+    }
+
+    window.dispatchEvent(new CustomEvent(SIGNED_OUT_EVENT))
+    if (isProtectedPath(window.location.pathname)) {
+      sso.redirectToLogin(currentPath())
+    }
     return Promise.reject(error)
   },
 )

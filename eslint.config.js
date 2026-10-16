@@ -6,7 +6,8 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // src/lib/sso/sso-client.ts is vendored from sso-backend/sdk/web — never edit or lint it here.
+  globalIgnores(['dist', 'src/lib/sso/sso-client.ts']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

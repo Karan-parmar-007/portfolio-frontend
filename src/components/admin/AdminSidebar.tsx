@@ -1,10 +1,10 @@
 import { NavLink } from 'react-router-dom'
-import { useAuth } from '@/context/AuthContext'
+import { useLogout } from '@/context/AuthContext'
 import { cn } from '@/lib/cn'
 import { ADMIN_NAV_ITEMS } from './adminNav'
 
 export function AdminSidebar() {
-  const { logout } = useAuth()
+  const logout = useLogout()
 
   return (
     <aside className="hidden w-56 shrink-0 border-r border-lightest-navy bg-light-navy md:flex md:flex-col">

@@ -7,9 +7,8 @@ import { mediaUrl } from '@/lib/mediaUrl'
 import { cn } from '@/lib/cn'
 import { useScrollSpy } from '@/hooks/useScrollSpy'
 import { useAuth } from '@/context/AuthContext'
-import { env } from '@/lib/env'
 import { appsHomeUrl } from '@/lib/apps'
-import { ssoFrontendUrl } from '@/lib/ssoClient'
+import { sso } from '@/lib/sso'
 import type { NavSection } from '@/lib/sections'
 import type { MediaRef } from '@/types/media'
 
@@ -20,10 +19,66 @@ function firstNameLetter(name: string | null | undefined, email: string | null |
   return '?'
 }
 
-function ssoAuthUrl(path: '/login' | '/signup'): string {
-  const url = new URL(path, env.SSO_FRONTEND_URL)
-  url.searchParams.set('next', window.location.href)
-  return url.toString()
+/**
+ * Account avatar, Log in / Sign up links, or a neutral placeholder while the
+ * SSO session is still resolving (never flash "Log in" at a signed-in user).
+ */
+function AuthControl({
+  returnTo,
+  size,
+  onNavigate,
+}: {
+  returnTo: string
+  size: 'sm' | 'lg'
+  onNavigate?: () => void
+}) {
+  const { isLoading, user } = useAuth()
+  const avatarSize = size === 'sm' ? 'h-9 w-9 text-sm' : 'h-12 w-12 text-lg'
+
+  if (isLoading) {
+    return (
+      <span
+        aria-hidden="true"
+        className={cn('block animate-pulse rounded-full border border-green/30', avatarSize)}
+      />
+    )
+  }
+
+  if (user) {
+    return (
+      <a
+        href={sso.accountUrl()}
+        onClick={onNavigate}
+        aria-label="Open SSO profile"
+        title={user.email}
+        className={cn(
+          'flex items-center justify-center rounded-full border border-green font-mono font-semibold text-green transition-colors hover:bg-green-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green',
+          avatarSize,
+        )}
+      >
+        {firstNameLetter(user.name, user.email)}
+      </a>
+    )
+  }
+
+  const linkClass =
+    'rounded px-1 transition-colors hover:text-lightest-slate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green'
+  return (
+    <div
+      className={cn(
+        'flex items-center justify-center gap-1.5 rounded border border-green bg-transparent font-mono text-green transition-all duration-200 hover:shadow-lg hover:shadow-green/10',
+        size === 'sm' ? 'h-9 px-3 text-xs' : 'h-12 w-full max-w-[200px] px-6 text-sm',
+      )}
+    >
+      <a href={sso.loginUrl(returnTo)} onClick={onNavigate} className={linkClass}>
+        Log in
+      </a>
+      <span aria-hidden="true">/</span>
+      <a href={sso.signupUrl(returnTo)} onClick={onNavigate} className={linkClass}>
+        Sign up
+      </a>
+    </div>
+  )
 }
 
 export function Nav({
@@ -39,7 +94,7 @@ export function Nav({
 }) {
   const location = useLocation()
   const navigate = useNavigate()
-  const { session } = useAuth()
+  const returnTo = `${location.pathname}${location.search}${location.hash}`
   const isHomePage = location.pathname === '/'
   const activeId = useScrollSpy(sections.map((s) => s.id), 140)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -211,22 +266,7 @@ export function Nav({
           ) : null}
 
           <FadeDown delay={(navItems.length + 2) * 0.08} enabled={animateIn}>
-            {session?.authenticated ? (
-              <a
-                href={ssoFrontendUrl('/account')}
-                aria-label="Open SSO profile"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-green font-mono text-sm font-semibold text-green transition-colors hover:bg-green-tint"
-              >
-                {firstNameLetter(session.name, session.email)}
-              </a>
-            ) : (
-              <Button
-                asChild
-                className="h-9 rounded border border-green bg-transparent px-4 font-mono text-xs text-green transition-all duration-200 hover:bg-green-tint hover:shadow-lg hover:shadow-green/10"
-              >
-                <a href={ssoAuthUrl('/login')}>Log in / Sign up</a>
-              </Button>
-            )}
+            <AuthControl returnTo={returnTo} size="sm" />
           </FadeDown>
         </div>
 
@@ -323,23 +363,11 @@ export function Nav({
           ) : null}
 
           <div className="mt-6 flex justify-center">
-            {session?.authenticated ? (
-              <a
-                href={ssoFrontendUrl('/account')}
-                onClick={() => setMenuOpen(false)}
-                className="flex h-12 w-12 items-center justify-center rounded-full border border-green font-mono text-lg font-semibold text-green"
-                aria-label="Open SSO profile"
-              >
-                {firstNameLetter(session.name, session.email)}
-              </a>
-            ) : (
-              <Button
-                asChild
-                className="h-12 w-full max-w-[200px] rounded border border-green bg-transparent px-6 font-mono text-sm text-green hover:bg-green-tint"
-              >
-                <a href={ssoAuthUrl('/login')}>Log in / Sign up</a>
-              </Button>
-            )}
+            <AuthControl
+              returnTo={returnTo}
+              size="lg"
+              onNavigate={() => setMenuOpen(false)}
+            />
           </div>
         </nav>
       </aside>
