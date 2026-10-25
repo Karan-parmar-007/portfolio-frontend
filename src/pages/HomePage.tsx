@@ -71,8 +71,8 @@ export function HomePage() {
           number={sectionNumber('projects')}
         />
       )}
-      {data.other_projects.length > 0 && (
-        <OtherProjects projects={data.other_projects} />
+      {data.project_count > 0 && (
+        <OtherProjects projects={data.projects} totalCount={data.project_count} />
       )}
       {data.skill_categories.length > 0 && (
         <SkillsSection

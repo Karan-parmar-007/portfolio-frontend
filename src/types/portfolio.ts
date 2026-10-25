@@ -87,8 +87,11 @@ export interface PortfolioOverview {
   skill_categories: SkillCategory[]
   about_skills: Skill[]
   social_media: SocialLink[]
+  /** Featured first (any status, archived included). */
   featured_projects: ProjectSummary[]
-  other_projects: ProjectSummary[]
+  /** The first few non-featured projects; the rest live on /projects. */
+  projects: ProjectSummary[]
+  project_count: number
 }
 
 export interface ProfileUpdateRequest {

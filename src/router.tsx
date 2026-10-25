@@ -1,29 +1,22 @@
-import { Suspense, lazy, useEffect } from 'react'
-import { createBrowserRouter, useParams } from 'react-router-dom'
+import { Suspense, lazy } from 'react'
+import { createBrowserRouter } from 'react-router-dom'
 import { SiteLayout } from '@/components/layout/SiteLayout'
 import { AdminTableSkeleton } from '@/components/common/Skeletons'
 import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
+import { PageLoader } from '@/components/common/PageLoader'
 import { SkillsPage } from '@/pages/SkillsPage'
-import { appsHomeUrl, appsUrl } from '@/lib/apps'
 
 const AdminRoutes = lazy(() => import('@/pages/admin/AdminRoutes'))
-
-function RedirectToAppsHome() {
-  useEffect(() => {
-    window.location.replace(appsHomeUrl())
-  }, [])
-  return null
-}
-
-function RedirectToAppsProject() {
-  const { slug = '' } = useParams()
-  useEffect(() => {
-    window.location.replace(appsUrl(`/projects/${encodeURIComponent(slug)}`))
-  }, [slug])
-  return null
-}
+// Kept out of the home page bundle (the detail page pulls in DOMPurify).
+const ProjectsPage = lazy(() =>
+  import('@/pages/ProjectsPage').then((m) => ({ default: m.ProjectsPage })),
+)
+const ProjectDetailPage = lazy(() =>
+  import('@/pages/ProjectDetailPage').then((m) => ({ default: m.ProjectDetailPage })),
+)
+const projectFallback = <PageLoader message="Loading projects..." />
 
 export const router = createBrowserRouter([
   {
@@ -31,8 +24,22 @@ export const router = createBrowserRouter([
     element: <SiteLayout />,
     children: [
       { index: true, element: <HomePage /> },
-      { path: 'projects', element: <RedirectToAppsHome /> },
-      { path: 'projects/:slug', element: <RedirectToAppsProject /> },
+      {
+        path: 'projects',
+        element: (
+          <Suspense fallback={projectFallback}>
+            <ProjectsPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'projects/:slug',
+        element: (
+          <Suspense fallback={projectFallback}>
+            <ProjectDetailPage />
+          </Suspense>
+        ),
+      },
       { path: 'skills', element: <SkillsPage /> },
     ],
   },

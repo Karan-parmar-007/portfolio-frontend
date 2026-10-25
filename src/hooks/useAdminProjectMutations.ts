@@ -1,55 +1,64 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
-  createAccessLevel,
   createProject,
-  deleteAccessLevel,
+  createProjectTag,
   deleteProject,
   deleteProjectCover,
-  fetchAdminAccessLevels,
+  deleteProjectTag,
   fetchAdminProject,
   fetchAdminProjects,
+  fetchProjectTags,
   reorderProjects,
   setProjectFeatured,
-  updateAccessLevel,
+  setProjectStatus,
   updateProject,
+  uploadProjectCover,
 } from '@/api/adminProjects'
 import { getErrorDetail } from '@/lib/errors'
 import { queryKeys } from '@/lib/queryKeys'
-import type { AdminProjectQuery } from '@/types/project'
+import type {
+  ProjectStatus,
+  ProjectUpdateRequest,
+  ProjectWriteRequest,
+} from '@/types/project'
 
-function invalidateProjectCaches(qc: ReturnType<typeof useQueryClient>) {
-  void qc.invalidateQueries({ queryKey: ['projects'] })
-  void qc.invalidateQueries({ queryKey: ['admin', 'projects'] })
+/** Every project edit can change the home page, the public list and the admin list. */
+function invalidateProjects(qc: ReturnType<typeof useQueryClient>) {
+  void qc.invalidateQueries({ queryKey: queryKeys.adminProjectsRoot })
+  void qc.invalidateQueries({ queryKey: queryKeys.adminProjectTags })
+  void qc.invalidateQueries({ queryKey: queryKeys.projectsRoot })
   void qc.invalidateQueries({ queryKey: queryKeys.overview })
 }
 
-export function useAdminProjects(query: AdminProjectQuery) {
+export function useAdminProjects(q: string) {
   return useQuery({
-    queryKey: queryKeys.adminProjects(query),
-    queryFn: () => fetchAdminProjects(query),
+    queryKey: queryKeys.adminProjects(q),
+    queryFn: () => fetchAdminProjects(q || undefined),
   })
 }
 
-export function useAdminProject(id: string | null) {
+export function useAdminProject(id: string | undefined) {
   return useQuery({
     queryKey: queryKeys.adminProject(id ?? ''),
-    queryFn: () => {
-      if (!id) {
-        return Promise.reject(new Error('Missing project id'))
-      }
-      return fetchAdminProject(id)
-    },
+    queryFn: () => fetchAdminProject(id ?? ''),
     enabled: Boolean(id),
+  })
+}
+
+export function useProjectTags() {
+  return useQuery({
+    queryKey: queryKeys.adminProjectTags,
+    queryFn: fetchProjectTags,
   })
 }
 
 export function useCreateProject() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (form: FormData) => createProject(form),
+    mutationFn: (payload: ProjectWriteRequest) => createProject(payload),
     onSuccess: () => {
-      invalidateProjectCaches(qc)
+      invalidateProjects(qc)
       toast.success('Project created')
     },
     onError: (error) => toast.error(getErrorDetail(error)),
@@ -59,11 +68,11 @@ export function useCreateProject() {
 export function useUpdateProject() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, form }: { id: string; form: FormData }) =>
-      updateProject(id, form),
+    mutationFn: ({ id, payload }: { id: string; payload: ProjectUpdateRequest }) =>
+      updateProject(id, payload),
     onSuccess: () => {
-      invalidateProjectCaches(qc)
-      toast.success('Project updated')
+      invalidateProjects(qc)
+      toast.success('Project saved')
     },
     onError: (error) => toast.error(getErrorDetail(error)),
   })
@@ -74,8 +83,55 @@ export function useDeleteProject() {
   return useMutation({
     mutationFn: (id: string) => deleteProject(id),
     onSuccess: () => {
-      invalidateProjectCaches(qc)
+      invalidateProjects(qc)
       toast.success('Project deleted')
+    },
+    onError: (error) => toast.error(getErrorDetail(error)),
+  })
+}
+
+export function useSetProjectFeatured() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, isFeatured }: { id: string; isFeatured: boolean }) =>
+      setProjectFeatured(id, isFeatured),
+    onSuccess: (project) => {
+      invalidateProjects(qc)
+      toast.success(project.is_featured ? 'Featured' : 'No longer featured')
+    },
+    onError: (error) => toast.error(getErrorDetail(error)),
+  })
+}
+
+export function useSetProjectStatus() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: ProjectStatus }) =>
+      setProjectStatus(id, status),
+    onSuccess: () => {
+      invalidateProjects(qc)
+      toast.success('Status updated')
+    },
+    onError: (error) => toast.error(getErrorDetail(error)),
+  })
+}
+
+export function useReorderProjects() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (ids: string[]) => reorderProjects(ids),
+    onSuccess: () => invalidateProjects(qc),
+    onError: (error) => toast.error(getErrorDetail(error)),
+  })
+}
+
+export function useUploadProjectCover() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) => uploadProjectCover(id, file),
+    onSuccess: () => {
+      invalidateProjects(qc)
+      toast.success('Cover updated')
     },
     onError: (error) => toast.error(getErrorDetail(error)),
   })
@@ -86,94 +142,32 @@ export function useDeleteProjectCover() {
   return useMutation({
     mutationFn: (id: string) => deleteProjectCover(id),
     onSuccess: () => {
-      invalidateProjectCaches(qc)
+      invalidateProjects(qc)
       toast.success('Cover removed')
     },
     onError: (error) => toast.error(getErrorDetail(error)),
   })
 }
 
-export function useSetProjectFeatured() {
+export function useCreateProjectTag() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, is_featured }: { id: string; is_featured: boolean }) =>
-      setProjectFeatured(id, is_featured),
+    mutationFn: (name: string) => createProjectTag(name),
     onSuccess: () => {
-      invalidateProjectCaches(qc)
+      invalidateProjects(qc)
+      toast.success('Tag created')
     },
     onError: (error) => toast.error(getErrorDetail(error)),
   })
 }
 
-export function useReorderProjects() {
+export function useDeleteProjectTag() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (ids: string[]) => reorderProjects(ids),
+    mutationFn: (id: string) => deleteProjectTag(id),
     onSuccess: () => {
-      invalidateProjectCaches(qc)
-    },
-    onError: (error) => toast.error(getErrorDetail(error)),
-  })
-}
-
-export function useAdminAccessLevels() {
-  return useQuery({
-    queryKey: queryKeys.accessLevels,
-    queryFn: fetchAdminAccessLevels,
-  })
-}
-
-export function useCreateAccessLevel() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (payload: {
-      name: string
-      description?: string | null
-      is_public: boolean
-    }) => createAccessLevel(payload),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: queryKeys.accessLevels })
-      void qc.invalidateQueries({ queryKey: ['projects'] })
-      void qc.invalidateQueries({ queryKey: queryKeys.overview })
-      toast.success('Access level created')
-    },
-    onError: (error) => toast.error(getErrorDetail(error)),
-  })
-}
-
-export function useUpdateAccessLevel() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({
-      id,
-      payload,
-    }: {
-      id: string
-      payload: {
-        name?: string
-        description?: string | null
-        is_public?: boolean
-      }
-    }) => updateAccessLevel(id, payload),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: queryKeys.accessLevels })
-      void qc.invalidateQueries({ queryKey: ['projects'] })
-      void qc.invalidateQueries({ queryKey: queryKeys.overview })
-      toast.success('Access level updated')
-    },
-    onError: (error) => toast.error(getErrorDetail(error)),
-  })
-}
-
-export function useDeleteAccessLevel() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) => deleteAccessLevel(id),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: queryKeys.accessLevels })
-      void qc.invalidateQueries({ queryKey: ['projects'] })
-      void qc.invalidateQueries({ queryKey: queryKeys.overview })
-      toast.success('Access level deleted')
+      invalidateProjects(qc)
+      toast.success('Tag deleted')
     },
     onError: (error) => toast.error(getErrorDetail(error)),
   })

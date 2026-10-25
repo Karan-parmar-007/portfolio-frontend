@@ -4,13 +4,15 @@ import { Seo } from '@/components/common/Seo'
 import { useAdminPortfolioQueriesBundle } from '@/hooks/useAdminDashboardData'
 
 export function AdminDashboardPage() {
-  const { education, experience, socials, attention, appsAdminUrl } =
+  const { education, experience, socials, projects, skills, attention } =
     useAdminPortfolioQueriesBundle()
 
   const cards = [
     { label: 'Education', count: education.length, to: '/admin/education' },
     { label: 'Experience', count: experience.length, to: '/admin/experience' },
     { label: 'Social links', count: socials.length, to: '/admin/social' },
+    { label: 'Projects', count: projects.length, to: '/admin/projects' },
+    { label: 'Skills', count: skills.length, to: '/admin/skills' },
   ]
 
   return (
@@ -33,19 +35,6 @@ export function AdminDashboardPage() {
             </p>
           </Link>
         ))}
-        <a
-          href={appsAdminUrl}
-          className="rounded border border-lightest-navy bg-light-navy p-5 transition hover:border-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green"
-        >
-          <p className="font-mono text-xs text-green">Projects & skills</p>
-          <p className="mt-2 text-lg font-semibold text-lightest-slate">
-            Manage in Apps
-          </p>
-          <p className="mt-1 text-xs text-slate">
-            Featured projects, tech stack, and the 3 home skill categories live in
-            all_projects admin.
-          </p>
-        </a>
       </div>
 
       <section className="mt-8 rounded border border-lightest-navy bg-light-navy p-5">

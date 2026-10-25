@@ -17,9 +17,8 @@ export default defineConfig({
     port: 5174,
     strictPort: true,
     proxy: {
-      '/api/auth': { target: 'http://localhost:8000', changeOrigin: true },
-      '/api/portfolio': { target: 'http://localhost:8001', changeOrigin: true },
-      '/api/allprojects': { target: 'http://localhost:8002', changeOrigin: true },
+      '/api/auth': { target: process.env.AUTH_API_PROXY || 'http://127.0.0.1:8002', changeOrigin: true },
+      '/api/portfolio': { target: process.env.PORTFOLIO_API_PROXY || 'http://127.0.0.1:8004', changeOrigin: true },
     },
   },
   preview: {

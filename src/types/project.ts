@@ -1,79 +1,71 @@
 import type { MediaRef } from './media'
 
-export type ProjectSort =
-  | 'sequence'
-  | 'newest'
-  | 'oldest'
-  | 'name'
-  | 'relevance'
+export type ProjectStatus = 'live' | 'offline' | 'archived'
 
-export interface AccessLevelSummary {
-  id: string
-  name: string
-}
+export const PROJECT_STATUSES: readonly ProjectStatus[] = ['live', 'offline', 'archived']
 
-export interface AccessLevel {
-  id: string
-  name: string
-  description: string | null
-  is_public: boolean
-  project_count?: number
-}
-
-export interface ProjectSkillSummary {
-  id: string
-  name: string
-}
-
-export interface ProjectSkillDetail extends ProjectSkillSummary {
-  category_name: string | null
-  icon: MediaRef | null
-}
-
+/** GET /portfolio/projects items (also the overview's project lists). */
 export interface ProjectSummary {
   id: string
   name: string
   slug: string
   short_description: string
+  status: ProjectStatus
   is_featured: boolean
-  is_live: boolean
-  live_url: string | null
-  github_link_backend: string | null
-  github_link_frontend: string | null
   sequence: number
-  access_level: AccessLevelSummary
-  cover_image: MediaRef | null
-  skills: ProjectSkillSummary[]
-  created_at: string
+  github_url: string | null
+  /** Exact Studio product page; public responses only include it while live. */
+  try_url: string | null
+  cover: MediaRef | null
+  tech_stack: string[]
+  tags: string[]
 }
 
+/** GET /portfolio/projects/{slug} and the admin detail. */
 export interface ProjectDetail extends ProjectSummary {
   long_description: string
-  docker_image_link_backend: string | null
-  docker_image_link_frontend: string | null
-  contributors: Record<string, string>
-  skills: ProjectSkillDetail[]
-  updated_at?: string
+  created_at: string
+  updated_at: string
 }
 
-export interface ProjectSuggestion {
-  id: string
-  name: string
-  slug: string
+export interface FacetCount {
+  value: string
+  count: number
+}
+
+/** GET /portfolio/project-facets */
+export interface ProjectFacets {
+  total: number
+  statuses: FacetCount[]
+  skills: FacetCount[]
+  tags: FacetCount[]
 }
 
 export interface ProjectQuery {
+  q?: string
+  status?: ProjectStatus[]
+  skill?: string
+  tag?: string
   page?: number
   page_size?: number
-  q?: string
-  skill_ids?: string[]
-  category_id?: string
-  is_live?: boolean
-  sort?: ProjectSort
 }
 
-export interface AdminProjectQuery {
-  page?: number
-  page_size?: number
-  q?: string
+export interface ProjectTag {
+  id: string
+  name: string
+  project_count: number
 }
+
+export interface ProjectWriteRequest {
+  name: string
+  short_description: string
+  long_description: string
+  status: ProjectStatus
+  is_featured: boolean
+  github_url: string | null
+  try_url: string | null
+  tech_stack: string[]
+  tags: string[]
+}
+
+export type ProjectUpdateRequest = Partial<ProjectWriteRequest>

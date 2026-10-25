@@ -121,3 +121,88 @@ body::before {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-lightest-navy);
 }
+
+/* Rich-text project descriptions (sanitized HTML from the admin editor). */
+@layer components {
+  .project-prose {
+    color: var(--color-slate);
+    font-size: 1rem;
+    line-height: 1.75;
+  }
+  .project-prose h2 {
+    color: var(--color-lightest-slate);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 2rem 0 0.75rem;
+  }
+  .project-prose h3,
+  .project-prose h4 {
+    color: var(--color-lightest-slate);
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 1.5rem 0 0.5rem;
+  }
+  .project-prose p {
+    margin: 0.85rem 0;
+  }
+  .project-prose a {
+    color: var(--color-green);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .project-prose ul,
+  .project-prose ol {
+    margin: 0.85rem 0;
+    padding-left: 1.4rem;
+  }
+  .project-prose ul {
+    list-style: disc;
+  }
+  .project-prose ol {
+    list-style: decimal;
+  }
+  .project-prose li {
+    margin: 0.25rem 0;
+  }
+  .project-prose blockquote {
+    border-left: 3px solid var(--color-green);
+    color: var(--color-light-slate);
+    margin: 1rem 0;
+    padding-left: 1rem;
+  }
+  .project-prose img {
+    border: 1px solid var(--color-navy-border);
+    border-radius: 0.75rem;
+    display: block;
+    height: auto;
+    margin: 1.25rem 0;
+    max-width: 100%;
+  }
+  .project-prose pre,
+  .project-prose code {
+    font-family: var(--font-mono);
+  }
+  .project-prose code {
+    background: var(--color-navy);
+    border-radius: 0.25rem;
+    color: var(--color-green);
+    font-size: 0.875em;
+    padding: 0.1rem 0.35rem;
+  }
+  .project-prose pre {
+    background: var(--color-navy);
+    border: 1px solid var(--color-navy-border);
+    border-radius: 0.75rem;
+    overflow-x: auto;
+    padding: 1rem;
+  }
+  .project-prose pre code {
+    background: none;
+    padding: 0;
+  }
+  .project-prose hr {
+    border: 0;
+    border-top: 1px solid var(--color-navy-border);
+    margin: 1.75rem 0;
+  }
+}

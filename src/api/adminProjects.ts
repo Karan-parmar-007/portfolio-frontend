@@ -1,25 +1,20 @@
 import { apiClient } from '@/lib/apiClient'
-import type { ItemsResponse, Paginated } from '@/types/api'
+import type { ItemsResponse } from '@/types/api'
 import type {
-  AccessLevel,
-  AdminProjectQuery,
   ProjectDetail,
+  ProjectStatus,
+  ProjectSummary,
+  ProjectTag,
+  ProjectUpdateRequest,
+  ProjectWriteRequest,
 } from '@/types/project'
 
-export async function fetchAdminProjects(
-  query: AdminProjectQuery = {},
-): Promise<Paginated<ProjectDetail>> {
-  const { data } = await apiClient.get<Paginated<ProjectDetail>>(
+export async function fetchAdminProjects(q?: string): Promise<ProjectSummary[]> {
+  const { data } = await apiClient.get<ItemsResponse<ProjectSummary>>(
     '/admin/projects',
-    {
-      params: {
-        page: query.page,
-        page_size: query.page_size,
-        q: query.q || undefined,
-      },
-    },
+    { params: q ? { q } : undefined },
   )
-  return data
+  return data.items
 }
 
 export async function fetchAdminProject(id: string): Promise<ProjectDetail> {
@@ -27,19 +22,18 @@ export async function fetchAdminProject(id: string): Promise<ProjectDetail> {
   return data
 }
 
-export async function createProject(form: FormData): Promise<ProjectDetail> {
-  const { data } = await apiClient.post<ProjectDetail>('/admin/projects', form)
+export async function createProject(
+  payload: ProjectWriteRequest,
+): Promise<ProjectDetail> {
+  const { data } = await apiClient.post<ProjectDetail>('/admin/projects', payload)
   return data
 }
 
 export async function updateProject(
   id: string,
-  form: FormData,
+  payload: ProjectUpdateRequest,
 ): Promise<ProjectDetail> {
-  const { data } = await apiClient.put<ProjectDetail>(
-    `/admin/projects/${id}`,
-    form,
-  )
+  const { data } = await apiClient.put<ProjectDetail>(`/admin/projects/${id}`, payload)
   return data
 }
 
@@ -47,63 +41,64 @@ export async function deleteProject(id: string): Promise<void> {
   await apiClient.delete(`/admin/projects/${id}`)
 }
 
-export async function deleteProjectCover(id: string): Promise<void> {
-  await apiClient.delete(`/admin/projects/${id}/cover`)
-}
-
 export async function setProjectFeatured(
   id: string,
-  is_featured: boolean,
+  isFeatured: boolean,
 ): Promise<ProjectDetail> {
   const { data } = await apiClient.patch<ProjectDetail>(
     `/admin/projects/${id}/featured`,
-    { is_featured },
+    { is_featured: isFeatured },
   )
   return data
 }
 
-export async function reorderProjects(ids: string[]): Promise<ProjectDetail[]> {
-  const { data } = await apiClient.patch<ItemsResponse<ProjectDetail>>(
+export async function setProjectStatus(
+  id: string,
+  status: ProjectStatus,
+): Promise<ProjectDetail> {
+  const { data } = await apiClient.patch<ProjectDetail>(
+    `/admin/projects/${id}/status`,
+    { status },
+  )
+  return data
+}
+
+export async function reorderProjects(ids: string[]): Promise<ProjectSummary[]> {
+  const { data } = await apiClient.patch<ItemsResponse<ProjectSummary>>(
     '/admin/projects/reorder',
     { ids },
   )
   return data.items
 }
 
-export async function fetchAdminAccessLevels(): Promise<AccessLevel[]> {
-  const { data } = await apiClient.get<ItemsResponse<AccessLevel>>(
-    '/admin/access-levels',
+export async function uploadProjectCover(
+  id: string,
+  file: File,
+): Promise<ProjectDetail> {
+  const form = new FormData()
+  form.append('file', file)
+  const { data } = await apiClient.put<ProjectDetail>(
+    `/admin/projects/${id}/cover`,
+    form,
   )
+  return data
+}
+
+export async function deleteProjectCover(id: string): Promise<ProjectDetail> {
+  const { data } = await apiClient.delete<ProjectDetail>(`/admin/projects/${id}/cover`)
+  return data
+}
+
+export async function fetchProjectTags(): Promise<ProjectTag[]> {
+  const { data } = await apiClient.get<ItemsResponse<ProjectTag>>('/admin/project-tags')
   return data.items
 }
 
-export async function createAccessLevel(payload: {
-  name: string
-  description?: string | null
-  is_public: boolean
-}): Promise<AccessLevel> {
-  const { data } = await apiClient.post<AccessLevel>(
-    '/admin/access-levels',
-    payload,
-  )
+export async function createProjectTag(name: string): Promise<ProjectTag> {
+  const { data } = await apiClient.post<ProjectTag>('/admin/project-tags', { name })
   return data
 }
 
-export async function updateAccessLevel(
-  id: string,
-  payload: {
-    name?: string
-    description?: string | null
-    is_public?: boolean
-  },
-): Promise<AccessLevel> {
-  const { data } = await apiClient.put<AccessLevel>(
-    `/admin/access-levels/${id}`,
-    payload,
-  )
-  return data
-}
-
-export async function deleteAccessLevel(id: string): Promise<void> {
-  await apiClient.delete(`/admin/access-levels/${id}`)
+export async function deleteProjectTag(id: string): Promise<void> {
+  await apiClient.delete(`/admin/project-tags/${id}`)
 }

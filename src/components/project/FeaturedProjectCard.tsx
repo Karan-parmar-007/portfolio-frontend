@@ -1,7 +1,9 @@
-import { ExternalLink, Folder, Shield } from 'lucide-react'
+import { Folder } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { MediaImage } from '@/components/common/MediaImage'
+import { ProjectStatusBadge } from '@/components/project/ProjectStatusBadge'
+import { TryItNowLink } from '@/components/project/TryItNowLink'
 import { cn } from '@/lib/cn'
-import { projectPublicUrl } from '@/lib/apps'
 import { GithubIconExport as GithubIcon } from '@/lib/socialIcons'
 import type { ProjectSummary } from '@/types/project'
 
@@ -12,19 +14,23 @@ export function FeaturedProjectCard({
   project: ProjectSummary
   reverse: boolean
 }) {
+  const detailHref = `/projects/${project.slug}`
   return (
     <div className="group relative overflow-hidden rounded-lg bg-light-navy transition-all duration-300 hover:shadow-2xl hover:shadow-green/10">
       <div className="grid gap-0 md:grid-cols-2">
-        <div
+        <Link
+          to={detailHref}
+          tabIndex={-1}
+          aria-hidden
           className={cn(
-            'relative h-[400px] overflow-hidden',
+            'relative block h-[400px] overflow-hidden',
             reverse ? 'md:order-1' : 'md:order-2',
           )}
         >
-          {project.cover_image ? (
+          {project.cover ? (
             <MediaImage
-              media={project.cover_image}
-              alt={project.name}
+              media={project.cover}
+              alt=""
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
@@ -33,21 +39,10 @@ export function FeaturedProjectCard({
             </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-light-navy via-light-navy/50 to-transparent opacity-60" />
-          <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-            {project.access_level?.name && !project.is_live ? (
-              <span className="flex items-center gap-1.5 rounded-full border border-green/30 bg-navy/90 px-3 py-1.5 font-mono text-xs text-green backdrop-blur-sm">
-                <Shield className="h-3 w-3" />
-                {project.access_level.name}
-              </span>
-            ) : null}
-            {project.is_live ? (
-              <span className="flex items-center gap-1.5 rounded-full border border-green/30 bg-navy/90 px-3 py-1.5 font-mono text-xs text-green backdrop-blur-sm">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-green" />
-                Live
-              </span>
-            ) : null}
+          <div className="absolute top-4 left-4">
+            <ProjectStatusBadge status={project.status} className="backdrop-blur-sm" />
           </div>
-        </div>
+        </Link>
 
         <div
           className={cn(
@@ -57,62 +52,44 @@ export function FeaturedProjectCard({
         >
           <p className="mb-2 font-mono text-sm text-green">Featured Project</p>
           <h3 className="mb-6 text-3xl font-bold text-lightest-slate transition-colors group-hover:text-green">
-            <a
-              href={projectPublicUrl(project)}
+            <Link
+              to={detailHref}
               className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green"
             >
               {project.name}
-            </a>
+            </Link>
           </h3>
           <p className="leading-relaxed text-slate">{project.short_description}</p>
           <div className="mt-6 flex flex-wrap gap-2">
-            {project.skills.map((skill) => (
-              <span
-                key={skill.id}
-                className="rounded-full border border-green/20 bg-green-tint px-3 py-1 font-mono text-xs text-green"
+            {project.tech_stack.map((tech) => (
+              <Link
+                key={tech}
+                to={`/projects?skill=${encodeURIComponent(tech)}`}
+                className="rounded-full border border-green/20 bg-green-tint px-3 py-1 font-mono text-xs text-green transition-colors hover:bg-green/20"
               >
-                {skill.name}
-              </span>
+                {tech}
+              </Link>
             ))}
           </div>
-          <div className="mt-6 flex items-center gap-4">
-            {project.github_link_backend ? (
+          <div className="mt-6 flex flex-wrap items-center gap-4">
+            {project.github_url ? (
               <a
-                href={project.github_link_backend}
+                href={project.github_url}
                 target="_blank"
                 rel="noreferrer"
-                title="Backend Repository"
-                className="flex items-center gap-2 text-lightest-slate transition-colors hover:text-green"
+                aria-label={`${project.name} source code`}
+                className="text-lightest-slate transition-colors hover:text-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green"
               >
                 <GithubIcon className="h-5 w-5" />
-                <span className="font-mono text-xs opacity-0 transition-opacity group-hover:opacity-100">
-                  Backend
-                </span>
               </a>
             ) : null}
-            {project.github_link_frontend ? (
-              <a
-                href={project.github_link_frontend}
-                target="_blank"
-                rel="noreferrer"
-                title="Frontend Repository"
-                className="flex items-center gap-2 text-lightest-slate transition-colors hover:text-green"
-              >
-                <GithubIcon className="h-5 w-5" />
-                <span className="font-mono text-xs opacity-0 transition-opacity group-hover:opacity-100">
-                  Frontend
-                </span>
-              </a>
-            ) : null}
-            {project.is_live ? (
-              <a
-                href={projectPublicUrl(project)}
-                className="ml-auto flex items-center gap-2 rounded border border-green/30 bg-green-tint px-4 py-2 text-green transition-colors hover:bg-green/20"
-              >
-                <ExternalLink className="h-4 w-4" />
-                <span className="font-mono text-xs font-medium">View Live</span>
-              </a>
-            ) : null}
+            <Link
+              to={detailHref}
+              className="font-mono text-xs text-light-slate transition-colors hover:text-green"
+            >
+              Details →
+            </Link>
+            <TryItNowLink project={project} className="ml-auto" />
           </div>
         </div>
       </div>

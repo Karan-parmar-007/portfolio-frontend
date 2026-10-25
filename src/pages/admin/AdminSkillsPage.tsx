@@ -105,7 +105,8 @@ export function AdminSkillsPage() {
   const submitSkill = form.handleSubmit((values) => {
     const fd = new FormData()
     fd.append('name', values.name)
-    if (values.category_id) fd.append('category_id', values.category_id)
+    // On edit an empty value is sent on purpose: it moves the skill out of its category.
+    if (values.category_id || editingSkill) fd.append('category_id', values.category_id ?? '')
     fd.append('show_in_about', String(values.show_in_about))
     if (iconFile) fd.append('icon', iconFile)
 

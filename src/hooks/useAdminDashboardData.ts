@@ -2,23 +2,27 @@ import { useMemo } from 'react'
 import {
   useAdminEducation,
   useAdminProfile,
+  useAdminSkills,
   useAdminSocialMedia,
   useAdminWorkExperience,
 } from '@/hooks/useAdminPortfolioMutations'
+import { useAdminProjects } from '@/hooks/useAdminProjectMutations'
 import { SOCIAL_PLATFORMS } from '@/lib/socialIcons'
-
-const APPS_ADMIN_URL = `${(import.meta.env.VITE_APPS_FRONTEND_URL || 'http://localhost:1576').replace(/\/$/, '')}/admin`
 
 export function useAdminPortfolioQueriesBundle() {
   const profileQuery = useAdminProfile()
   const educationQuery = useAdminEducation()
   const experienceQuery = useAdminWorkExperience()
   const socialsQuery = useAdminSocialMedia()
+  const projectsQuery = useAdminProjects('')
+  const skillsQuery = useAdminSkills()
 
   const profile = profileQuery.data
   const education = educationQuery.data ?? []
   const experience = experienceQuery.data ?? []
   const socials = socialsQuery.data ?? []
+  const projects = projectsQuery.data ?? []
+  const skills = skillsQuery.data ?? []
 
   const attention = useMemo(() => {
     const knownPlatforms = new Set<string>(SOCIAL_PLATFORMS)
@@ -44,7 +48,8 @@ export function useAdminPortfolioQueriesBundle() {
     education,
     experience,
     socials,
+    projects,
+    skills,
     attention,
-    appsAdminUrl: APPS_ADMIN_URL,
   }
 }

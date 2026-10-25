@@ -7,8 +7,8 @@ import { mediaUrl } from '@/lib/mediaUrl'
 import { cn } from '@/lib/cn'
 import { useScrollSpy } from '@/hooks/useScrollSpy'
 import { useAuth } from '@/context/AuthContext'
-import { appsHomeUrl } from '@/lib/apps'
 import { sso } from '@/lib/sso'
+import { env } from '@/lib/env'
 import type { NavSection } from '@/lib/sections'
 import type { MediaRef } from '@/types/media'
 
@@ -125,22 +125,29 @@ export function Nav({
 
   type NavItem = { href: string; text: string; number?: string }
 
-  const homeItems: NavItem[] = sections.map((s) => ({
-    href: `#${s.id}`,
-    text: s.label,
-    number: s.number,
-  }))
+  const studioItem: NavItem = { href: env.STUDIO_URL, text: 'Studio' }
+
+  const homeItems: NavItem[] = [
+    ...sections.map((s) => ({
+      href: `#${s.id}`,
+      text: s.label,
+      number: s.number,
+    })),
+    studioItem,
+  ]
 
   const otherItems: NavItem[] = [
     { href: '/', text: 'Home' },
-    { href: appsHomeUrl(), text: 'Projects' },
+    { href: '/projects', text: 'Projects' },
     { href: '/skills', text: 'Skills' },
+    studioItem,
   ]
 
   const navItems = isHomePage ? homeItems : otherItems
 
   const isActive = (href: string) => {
     if (href.startsWith('#')) return activeId === href.slice(1)
+    if (href !== '/' && location.pathname.startsWith(`${href}/`)) return true
     return location.pathname === href
   }
 

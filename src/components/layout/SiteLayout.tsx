@@ -35,7 +35,7 @@ export function SiteLayout() {
     hasEducation: (data?.education.length ?? 0) > 0,
     hasProjects:
       (data?.featured_projects.length ?? 0) > 0 ||
-      (data?.other_projects.length ?? 0) > 0,
+      (data?.project_count ?? 0) > 0,
     hasSkills: (data?.skill_categories.length ?? 0) > 0,
     hasContact: Boolean(data?.profile.email),
   })

@@ -1,12 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import {
-  fetchAccessLevels,
-  fetchFeaturedProjects,
-  fetchLatestProjects,
-  fetchProject,
-  fetchProjectSuggestions,
-  fetchProjects,
-} from '@/api/projects'
+import { isAxiosError } from 'axios'
+import { fetchProject, fetchProjectFacets, fetchProjects } from '@/api/projects'
 import { queryKeys } from '@/lib/queryKeys'
 import type { ProjectQuery } from '@/types/project'
 
@@ -14,29 +8,15 @@ export function useProjects(query: ProjectQuery) {
   return useQuery({
     queryKey: queryKeys.projects(query),
     queryFn: () => fetchProjects(query),
+    // Keep the current page on screen while the next filter/page loads.
     placeholderData: keepPreviousData,
   })
 }
 
-export function useFeaturedProjects() {
+export function useProjectFacets() {
   return useQuery({
-    queryKey: queryKeys.featuredProjects,
-    queryFn: fetchFeaturedProjects,
-  })
-}
-
-export function useLatestProjects() {
-  return useQuery({
-    queryKey: queryKeys.latestProjects,
-    queryFn: fetchLatestProjects,
-  })
-}
-
-export function useProjectSuggestions(q: string) {
-  return useQuery({
-    queryKey: queryKeys.projectSuggestions(q),
-    queryFn: () => fetchProjectSuggestions(q),
-    enabled: q.trim().length >= 2,
+    queryKey: queryKeys.projectFacets,
+    queryFn: fetchProjectFacets,
   })
 }
 
@@ -45,18 +25,8 @@ export function useProject(slug: string) {
     queryKey: queryKeys.project(slug),
     queryFn: () => fetchProject(slug),
     enabled: slug.length > 0,
-    retry: (failureCount, error) => {
-      const status = (error as { response?: { status?: number } }).response
-        ?.status
-      if (status === 404) return false
-      return failureCount < 1
-    },
-  })
-}
-
-export function useAccessLevels() {
-  return useQuery({
-    queryKey: queryKeys.accessLevels,
-    queryFn: fetchAccessLevels,
+    // A missing project will not appear on retry; show "doesn't exist" at once.
+    retry: (failureCount, error) =>
+      !(isAxiosError(error) && error.response?.status === 404) && failureCount < 1,
   })
 }
