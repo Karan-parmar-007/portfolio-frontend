@@ -3,12 +3,13 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { X, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FadeDown } from '@/components/common/FadeIn'
-import { mediaUrl } from '@/lib/mediaUrl'
+import { StudioLink } from '@/components/common/StudioLink'
+import { mediaDownloadUrl } from '@/lib/mediaUrl'
+import { resumeFileName } from '@/lib/resume'
 import { cn } from '@/lib/cn'
 import { useScrollSpy } from '@/hooks/useScrollSpy'
 import { useAuth } from '@/context/AuthContext'
 import { sso } from '@/lib/sso'
-import { env } from '@/lib/env'
 import type { NavSection } from '@/lib/sections'
 import type { MediaRef } from '@/types/media'
 
@@ -99,7 +100,7 @@ export function Nav({
   const activeId = useScrollSpy(sections.map((s) => s.id), 140)
   const [menuOpen, setMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
-  const resumeHref = mediaUrl(resume)
+  const resumeHref = mediaDownloadUrl(resume, resumeFileName(profileName))
 
   // Always keep navbar sticky at top (never vanish on scroll)
   useEffect(() => {
@@ -125,22 +126,16 @@ export function Nav({
 
   type NavItem = { href: string; text: string; number?: string }
 
-  const studioItem: NavItem = { href: env.STUDIO_URL, text: 'Studio' }
-
-  const homeItems: NavItem[] = [
-    ...sections.map((s) => ({
-      href: `#${s.id}`,
-      text: s.label,
-      number: s.number,
-    })),
-    studioItem,
-  ]
+  const homeItems: NavItem[] = sections.map((s) => ({
+    href: `#${s.id}`,
+    text: s.label,
+    number: s.number,
+  }))
 
   const otherItems: NavItem[] = [
     { href: '/', text: 'Home' },
     { href: '/projects', text: 'Projects' },
     { href: '/skills', text: 'Skills' },
-    studioItem,
   ]
 
   const navItems = isHomePage ? homeItems : otherItems
@@ -265,7 +260,7 @@ export function Nav({
                 asChild
                 className="h-9 rounded border border-green bg-transparent px-4 font-mono text-xs text-green transition-all duration-200 hover:bg-green-tint hover:shadow-lg hover:shadow-green/10"
               >
-                <a href={resumeHref} target="_blank" rel="noreferrer">
+                <a href={resumeHref} download>
                   Resume
                 </a>
               </Button>
@@ -273,6 +268,10 @@ export function Nav({
           ) : null}
 
           <FadeDown delay={(navItems.length + 2) * 0.08} enabled={animateIn}>
+            <StudioLink size="sm" />
+          </FadeDown>
+
+          <FadeDown delay={(navItems.length + 3) * 0.08} enabled={animateIn}>
             <AuthControl returnTo={returnTo} size="sm" />
           </FadeDown>
         </div>
@@ -362,12 +361,16 @@ export function Nav({
                 asChild
                 className="h-12 w-full max-w-[200px] rounded border border-green bg-transparent px-6 font-mono text-sm text-green hover:bg-green-tint"
               >
-                <a href={resumeHref} target="_blank" rel="noreferrer">
+                <a href={resumeHref} download>
                   Resume
                 </a>
               </Button>
             </div>
           ) : null}
+
+          <div className="mt-4 flex justify-center">
+            <StudioLink size="lg" onNavigate={() => setMenuOpen(false)} />
+          </div>
 
           <div className="mt-6 flex justify-center">
             <AuthControl
