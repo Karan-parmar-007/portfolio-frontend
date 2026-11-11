@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { IntroLoader } from '@/components/common/IntroLoader'
 import { ScrollToTop } from '@/components/common/ScrollToTop'
+import { ChatWidget } from '@/components/chat/ChatWidget'
 import { useOverview } from '@/hooks/usePortfolioQueries'
 import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
 import { buildNavSections } from '@/lib/sections'
@@ -64,6 +65,7 @@ export function SiteLayout() {
       </main>
       <Footer name={data?.profile.name} socials={railSocials} />
       <ScrollToTop />
+      <ChatWidget />
     </div>
   )
 }
