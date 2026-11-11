@@ -19,6 +19,8 @@ export default defineConfig({
     proxy: {
       '/api/auth': { target: process.env.AUTH_API_PROXY || 'http://127.0.0.1:8002', changeOrigin: true },
       '/api/portfolio': { target: process.env.PORTFOLIO_API_PROXY || 'http://127.0.0.1:8004', changeOrigin: true },
+      // The site assistant (Studio backend). Prod: Caddy routes /api/studio/chatbot* there.
+      '/api/studio': { target: process.env.STUDIO_API_PROXY || 'http://127.0.0.1:8001', changeOrigin: true },
     },
   },
   preview: {

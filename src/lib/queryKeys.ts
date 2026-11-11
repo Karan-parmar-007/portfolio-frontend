@@ -18,6 +18,7 @@ export const queryKeys = {
   adminProjects: (q: string) => ['admin', 'projects', 'list', q] as const,
   adminProject: (id: string) => ['admin', 'projects', 'detail', id] as const,
   adminProjectTags: ['admin', 'project-tags'] as const,
+  chatbotConfig: (surface: string) => ['chatbot', 'config', surface] as const,
   adminContactMessages: (query: { page: number; page_size: number }) =>
     ['admin', 'contact-messages', query] as const,
 }
